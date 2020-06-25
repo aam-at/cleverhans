@@ -232,7 +232,6 @@ def optimize_linear(grad, eps, ord=np.inf):
   # In Python 2, the `list` call in the following line is redundant / harmless.
   # In Python 3, the `list` call is needed to convert the iterator returned by `range` into a list.
   red_ind = list(range(1, len(grad.get_shape())))
-  avoid_zero_div = 1e-12
   if ord == np.inf:
     # Take sign of gradient
     optimal_perturbation = tf.sign(grad)
@@ -250,11 +249,9 @@ def optimize_linear(grad, eps, ord=np.inf):
     num_ties = tf.reduce_sum(input_tensor=tied_for_max, axis=red_ind, keepdims=True)
     optimal_perturbation = sign * tied_for_max / num_ties
   elif ord == 2:
-    square = tf.maximum(avoid_zero_div,
-                        reduce_sum(tf.square(grad),
-                                   axis=red_ind,
-                                   keepdims=True))
-    optimal_perturbation = grad / tf.sqrt(square)
+    avoid_zero_div = 1e-12
+    l2_norm = tf.sqrt(reduce_sum(tf.square(grad), axis=red_ind, keepdims=True))
+    optimal_perturbation = grad / tf.maximum(avoid_zero_div, l2_norm)
   else:
     raise NotImplementedError("Only L-inf, L1 and L2 norms are "
                               "currently implemented.")
